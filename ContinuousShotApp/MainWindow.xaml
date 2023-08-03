@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ContinuousShotApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="1080" Width="1920" Closing="Window_Closing">
+        Title="MainWindow" WindowState="Maximized" Height="1080" Width="1920" Closing="Window_Closing">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -35,7 +35,7 @@
 
                 <Grid Grid.Column="1">
 
-                    <Slider TickFrequency="4" IsSnapToTickEnabled="True" x:Name="widthSlider" Width="170" VerticalAlignment="Center" HorizontalAlignment="Left" Maximum="3088" Minimum="376" Value="1920" />
+                    <Slider TickFrequency="4" IsSnapToTickEnabled="True" x:Name="widthSlider" Width="170" VerticalAlignment="Center" HorizontalAlignment="Left" Maximum="3088" Minimum="376" Value="3088" />
                 </Grid>
 
                 <Grid Margin="30 0 0 0" Grid.Column="2">
@@ -63,7 +63,7 @@
                         <ColumnDefinition Width="23*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Slider TickFrequency="2" IsSnapToTickEnabled="True" x:Name="heightSlider" Width="170" VerticalAlignment="Center" HorizontalAlignment="Left" Maximum="2064" Minimum="320" Value="1080" Grid.ColumnSpan="2"  />
+                    <Slider TickFrequency="2" IsSnapToTickEnabled="True" x:Name="heightSlider" Width="170" VerticalAlignment="Center" HorizontalAlignment="Left" Maximum="2064" Minimum="320" Value="2064" Grid.ColumnSpan="2"  />
                 </Grid>
 
                 <Grid Margin="30 0 0 0" Grid.Column="2">
@@ -141,14 +141,33 @@
                 <Grid Grid.Column="1">
                     <Button Style="{StaticResource customButton}" x:Name="btnStopVideo" Click="btnStopVideo_Click" Content="Stop Video" />
                 </Grid>
-                
+
             </Grid>
 
-            <ComboBox x:Name="cbxDevices" SelectionChanged="cbxDevices_SelectionChanged" />
+            <Grid>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="3*" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+
+                    <Label Style="{StaticResource customLabel}" Content="Select Device:" />
+
+                </Grid>
+
+                <Grid Grid.Column="1">
+                    <ComboBox x:Name="cbxDevices" SelectionChanged="cbxDevices_SelectionChanged" Margin="10 5" />
+                </Grid>
+                
+            </Grid>
+            
+            
+
+
 
         </StackPanel>
-
-
 
     </Grid>
 </Window>

@@ -90,12 +90,15 @@ namespace ContinuousShotApp
 
             try
             {
+                
                 IGrabResult grabResult = e.GrabResult;
 
                 Dispatcher.Invoke(() =>
                 {
-                    SetCameraSettings(camera!, GetCameraSettings());
+                    SetChangeableCameraSettings(camera!, GetChangeableCameraSettings());
                 });
+
+                
 
                 if (grabResult.IsValid)
                 {
@@ -119,7 +122,6 @@ namespace ContinuousShotApp
                             imageViewer.Source = bitmapImage;
                         });
 
-                        
                         if(bitmapImage is not null)
                         {
                             Dispatcher.Invoke(() =>
@@ -239,12 +241,7 @@ namespace ContinuousShotApp
                     return;
                 }
 
-                //if (!camera.IsOpen)
-                //{
-                //    camera.StreamGrabber.Start();
-                //}
-                    
-
+                SetFixedCameraSettings(camera, GetFixedCameraSettings());
                 Configuration.AcquireContinuous(camera, null);
                 camera?.StreamGrabber.Start(GrabStrategy.OneByOne, GrabLoop.ProvidedByStreamGrabber);
             }
@@ -254,10 +251,7 @@ namespace ContinuousShotApp
             }
         }
 
-        private void btnTakeVideo_Click(object sender, RoutedEventArgs e)
-        {
-            ContinuousShot();
-        }
+        
 
         private void cbxDevices_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -336,6 +330,11 @@ namespace ContinuousShotApp
                 widthSlider.Value = value - 1;
         }
 
+        private void btnTakeVideo_Click(object sender, RoutedEventArgs e)
+        {
+            ContinuousShot();
+        }
+
         private void btnStopVideo_Click(object sender, RoutedEventArgs e)
         {
             Stop();
@@ -369,7 +368,7 @@ namespace ContinuousShotApp
             //DestroyCamera();
         }
 
-        private void SetCameraSettings(Camera camera, CameraSettings cameraSettings)
+        private void SetChangeableCameraSettings(Camera camera, CameraSettings cameraSettings)
         {
             //camera.Parameters[PLCamera.Width].SetValue(cameraSettings.Width, IntegerValueCorrection.Nearest);
             //camera.Parameters[PLCamera.Height].TrySetValue(cameraSettings.Height, IntegerValueCorrection.Nearest);
@@ -377,12 +376,24 @@ namespace ContinuousShotApp
             camera.Parameters[PLCamera.ExposureTime].TrySetValue(cameraSettings.ExposureTime);
         }
 
-        private CameraSettings GetCameraSettings() => new CameraSettings()
+        private CameraSettings GetChangeableCameraSettings() => new CameraSettings()
         {
             //Width = Convert.ToInt32(widthSlider.Value),
             //Height = Convert.ToInt32(heightSlider.Value),
             Gain = gainSlider.Value,
             ExposureTime = exposureSlider.Value
+        };
+
+        private void SetFixedCameraSettings(Camera camera, CameraSettings cameraSettings)
+        {
+            camera.Parameters[PLCamera.Width].SetValue(cameraSettings.Width, IntegerValueCorrection.Nearest);
+            camera.Parameters[PLCamera.Height].TrySetValue(cameraSettings.Height, IntegerValueCorrection.Nearest);
+        }
+
+        private CameraSettings GetFixedCameraSettings() => new CameraSettings()
+        {
+            Width = Convert.ToInt32(widthSlider.Value),
+            Height = Convert.ToInt32(heightSlider.Value),
         };
 
     }
