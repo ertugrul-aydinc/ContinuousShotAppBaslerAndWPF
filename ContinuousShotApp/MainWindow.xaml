@@ -6,19 +6,42 @@
         xmlns:local="clr-namespace:ContinuousShotApp"
         mc:Ignorable="d"
         Title="MainWindow" WindowState="Maximized" Height="1080" Width="1920" Closing="Window_Closing">
+    
     <Grid>
+
+        
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="3*"/>
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="1" BorderBrush="Red" BorderThickness="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+
+        <Menu Grid.Row="0" Grid.Column="0">
+            <MenuItem Header="_Settings" Checked="MenuItem_Checked">
+                <MenuItem x:Name="settingsMenu" Header="Image Format">
+                    <MenuItem x:Name="jpegItem" Header=".jpeg" IsCheckable="True" Click="jpegItem_Click" IsChecked="True"  />
+                    <MenuItem Header=".png" x:Name="pngItem" Click="pngItem_Click" />
+                    <MenuItem Header=".webp" x:Name="webpItem" Click="webpItem_Click" />
+                    <MenuItem Header=".heif" Name="heifItem" Click="heifItem_Click" />
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="_Exit" />
+            </MenuItem>
+        </Menu>
+
+
+        <Border Grid.Column="1"  Grid.RowSpan="2" BorderBrush="Red" BorderThickness="5">
             <Grid Grid.Column="1">
-                <Image x:Name="imageViewer"  VerticalAlignment="Center" HorizontalAlignment="Center"  Grid.ColumnSpan="2"/>
+                <Image x:Name="imageViewer"  VerticalAlignment="Center" HorizontalAlignment="Center" />
             </Grid>
         </Border>
 
-        <StackPanel Grid.Column="0">
+        <StackPanel Grid.Column="0" Grid.Row="1">
 
 
             <Grid>
@@ -128,18 +151,26 @@
             <Grid>
 
                 <Grid.ColumnDefinitions>
-
-                    <ColumnDefinition />
-                    <ColumnDefinition />
-
+                    <ColumnDefinition Width="1.7*" />
+                    <ColumnDefinition Width="1.8*" />
+                    <ColumnDefinition Width="1.4*" />
                 </Grid.ColumnDefinitions>
 
                 <Grid Grid.Column="0">
-                    <Button Style="{StaticResource customButton}" x:Name="btnTakeVideo" Click="btnTakeVideo_Click" Content="Take Video" />
+                    <Label Style="{StaticResource customLabel}" VerticalAlignment="Center" Content="Gamma:" HorizontalAlignment="Left" />
                 </Grid>
 
                 <Grid Grid.Column="1">
-                    <Button Style="{StaticResource customButton}" x:Name="btnStopVideo" Click="btnStopVideo_Click" Content="Stop Video" />
+
+                    <Slider x:Name="gammaSlider" Width="170" VerticalAlignment="Center" HorizontalAlignment="Left" Maximum="3.99" Minimum="0" Value="1" />
+                </Grid>
+
+                <Grid Margin="30 0 0 0" Grid.Column="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="69*"/>
+                        <ColumnDefinition Width="38*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="txtGamma" TextChanged="txtGamma_TextChanged" Text="{Binding ElementName=gammaSlider, Path=Value}" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="15" />
                 </Grid>
 
             </Grid>
@@ -162,8 +193,35 @@
                 </Grid>
                 
             </Grid>
-            
-            
+
+            <Grid>
+
+                <Grid.ColumnDefinitions>
+
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Button Style="{StaticResource customButton}" x:Name="btnTakeVideo" Click="btnTakeVideo_Click" Content="Start" />
+                </Grid>
+
+                <Grid Grid.Column="1">
+                    <Button Style="{StaticResource customButton}" x:Name="btnStopVideo" Click="btnStopVideo_Click" Content="Stop" />
+                </Grid>
+
+                <Grid Grid.Column="2">
+                    <Button Style="{StaticResource customButton}" Width="120" x:Name="btnTakeFrame" Click="btnTakeFrame_Click" Content="Take Frame" />
+                </Grid>
+
+                <Grid Grid.Column="3">
+                    <Button Style="{StaticResource customButton}" Width="120" x:Name="btnSingleShot" Click="btnSingleShot_Click" Content="Save Frame" />
+                </Grid>
+
+            </Grid>
 
 
 

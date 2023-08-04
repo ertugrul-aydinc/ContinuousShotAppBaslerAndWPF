@@ -10,6 +10,7 @@ namespace ContinuousShotApp.Models.Camera
     {
         public double ExposureTime { get; set; }
         public double Gain { get; set; }
+        public double Gamma { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
     }
