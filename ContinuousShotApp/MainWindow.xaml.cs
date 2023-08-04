@@ -1,4 +1,6 @@
 ﻿using Basler.Pylon;
+using ContinuousShotApp.Helpers;
+using ContinuousShotApp.Helpers.Converters;
 using ContinuousShotApp.Models.Camera;
 using ContinuousShotApp.Utilities;
 using ContinuousShotApp.Utilities.Enums;
@@ -33,7 +35,6 @@ namespace ContinuousShotApp
 
         private Camera? camera = null;
         private Stopwatch stopwatch = new();
-        private PixelDataConverter converter = new();
 
         public MainWindow()
         {
@@ -68,6 +69,7 @@ namespace ContinuousShotApp
             }
         }
 
+        #region Camera Events
         private void OnConnectionLost(Object sender, EventArgs e)
         {
             if (!CheckAccess())
@@ -88,10 +90,9 @@ namespace ContinuousShotApp
             //    return;
             //}
 
-
             try
             {
-                
+
                 IGrabResult grabResult = e.GrabResult;
 
                 Dispatcher.Invoke(() =>
@@ -99,11 +100,11 @@ namespace ContinuousShotApp
                     SetChangeableCameraSettings(camera!, GetChangeableCameraSettings());
                 });
 
-                Bitmap? bitmap = GrabResultToBitmap(grabResult);
+                Bitmap? bitmap = GrabResultConverterHelper.Instance.GrabResultToBitmap(grabResult);
 
                 if (grabResult.IsValid)
                 {
-                    if(!stopwatch.IsRunning || stopwatch.ElapsedMilliseconds > 33)
+                    if (!stopwatch.IsRunning || stopwatch.ElapsedMilliseconds > 33)
                     {
                         stopwatch.Restart();
 
@@ -111,11 +112,11 @@ namespace ContinuousShotApp
 
                         imageViewer.Dispatcher.Invoke(() =>
                         {
-                            bitmapImage = BitmapToImageSource(bitmap!);
+                            bitmapImage = GrabResultConverterHelper.Instance.BitmapToImageSource(bitmap!);
                             imageViewer.Source = bitmapImage;
                         });
 
-                        if(bitmapImage is not null)
+                        if (bitmapImage is not null)
                         {
                             Dispatcher.Invoke(() =>
                             {
@@ -137,7 +138,7 @@ namespace ContinuousShotApp
                 e.DisposeGrabResultIfClone();
             }
         }
-        
+
         private void OnGrabStopped(Object sender, GrabStopEventArgs e)
         {
             if (!CheckAccess())
@@ -181,20 +182,11 @@ namespace ContinuousShotApp
             }
         }
 
-        private BitmapImage BitmapToImageSource(Bitmap bitmap)
-        {
-            using (MemoryStream memory = new MemoryStream())
-            {
-                bitmap.Save(memory, ImageFormat.Bmp);
-                memory.Position = 0;
-                BitmapImage bitmapimage = new BitmapImage();
-                bitmapimage.BeginInit();
-                bitmapimage.StreamSource = memory;
-                bitmapimage.CacheOption = BitmapCacheOption.OnLoad;
-                bitmapimage.EndInit();
+        #endregion
 
-                return bitmapimage;
-            }
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            //DestroyCamera();
         }
 
         private void Stop()
@@ -202,8 +194,6 @@ namespace ContinuousShotApp
             try
             {
                 camera?.StreamGrabber.Stop();
-                //camera!.Close();
-                //camera = null;
             }
             catch (Exception ex)
             {
@@ -250,6 +240,11 @@ namespace ContinuousShotApp
                     MessageBox.Show("Please select a device.");
                     return;
                 }
+                if (camera.StreamGrabber.IsGrabbing)
+                {
+                    MessageBox.Show("Camera is already grabbing");
+                    return;
+                }
 
                 SetFixedCameraSettings(camera, GetFixedCameraSettings());
                 Configuration.AcquireContinuous(camera, null);
@@ -290,7 +285,7 @@ namespace ContinuousShotApp
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}_{MethodBase.GetCurrentMethod()!.Name}");
+                    ShowException(ex);
                 }
 
             }
@@ -310,7 +305,7 @@ namespace ContinuousShotApp
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error: {ex.Message} --- {MethodBase.GetCurrentMethod()!.Name}");
+                ShowException(ex);
                 return -1;
             }
         }
@@ -346,8 +341,7 @@ namespace ContinuousShotApp
 
         private void btnTakeVideo_Click(object sender, RoutedEventArgs e)
         {
-            //OneShot();
-            ContinuousShot();
+             ContinuousShot();
         }
 
         private void btnStopVideo_Click(object sender, RoutedEventArgs e)
@@ -366,11 +360,8 @@ namespace ContinuousShotApp
             MessageBox.Show($"Error: {ex.Message}_{MethodBase.GetCurrentMethod()!.Name}");
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            //DestroyCamera();
-        }
 
+        #region CameraSettings
         private void SetChangeableCameraSettings(Camera camera, CameraSettings cameraSettings)
         {
             camera.Parameters[PLCamera.Gain].TrySetValue(cameraSettings.Gain);
@@ -396,6 +387,8 @@ namespace ContinuousShotApp
             Width = Convert.ToInt32(widthSlider.Value),
             Height = Convert.ToInt32(heightSlider.Value),
         };
+        #endregion
+
 
         private void btnSingleShot_Click(object sender, RoutedEventArgs e)
         {
@@ -412,49 +405,8 @@ namespace ContinuousShotApp
             }
 
             BitmapImage image = (BitmapImage)imageViewer.Source;
-
-            var savingImage = BitmapImage2Bitmap(image);
-
-            SaveImageFile(imgType, savingImage);
-
-        }
-
-
-        private Bitmap? GrabResultToBitmap(IGrabResult grabResult)
-        {
-            try
-            {
-                Bitmap bitmap = new Bitmap(grabResult.Width, grabResult.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-
-                BitmapData bitmapData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, bitmap.PixelFormat);
-                converter.OutputPixelFormat = PixelType.BGR8packed;
-                IntPtr ptrBmp = bitmapData.Scan0;
-                converter.Convert(ptrBmp, bitmapData.Stride * bitmapData.Height, grabResult);
-                bitmap.UnlockBits(bitmapData);
-
-                return bitmap;
-            }
-            catch (Exception ex)
-            {
-                ShowException(ex);
-
-                return null;
-            }
-        }
-
-        private Bitmap BitmapImage2Bitmap(BitmapImage bitmapImage)
-        {
-            // BitmapImage bitmapImage = new BitmapImage(new Uri("../Images/test.png", UriKind.Relative));
-
-            using (MemoryStream outStream = new MemoryStream())
-            {
-                BitmapEncoder enc = new BmpBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(bitmapImage));
-                enc.Save(outStream);
-                System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(outStream);
-
-                return new Bitmap(bitmap);
-            }
+            var savingImage = GrabResultConverterHelper.Instance.BitmapImage2Bitmap(image);
+            FileHelper.Instance.SaveImageFile(imgType, savingImage);
         }
 
         private void MenuItem_Checked(object sender, RoutedEventArgs e)
@@ -462,73 +414,25 @@ namespace ContinuousShotApp
             
         }
 
-        private void SaveImageFile(ImageType imageType, Bitmap image)
-        {
-            string mainPath = @$"C:\Users\VM-Support\source\repos\ContinuousShotApp\ContinuousShotApp\images\{DateTime.Now.Day}-{DateTime.Now.Month}-{DateTime.Now.Year}\";
-
-            if(!Directory.Exists(mainPath))
-                Directory.CreateDirectory(mainPath);
-
-            image.Save($"{mainPath}{Guid.NewGuid()}.{imgType}");
-
-            MessageBox.Show("Image saved successfully.");
-        }
-
         #region MenuItems
         private void jpegItem_Click(object sender, RoutedEventArgs e)
         {
-            MenuItem menuItem = (sender as MenuItem)!;
-
-            foreach (MenuItem item in settingsMenu.Items)
-            {
-                if (item != menuItem)
-                    item.IsChecked = false;
-            }
-
-            menuItem.IsChecked = true;
-            imgType = ImageType.jpeg;
+            imgType = SetImageType((sender as MenuItem)!, ImageType.jpeg);
         }
 
         private void pngItem_Click(object sender, RoutedEventArgs e)
         {
-            MenuItem menuItem = (sender as MenuItem)!;
-
-            foreach (MenuItem item in settingsMenu.Items)
-            {
-                if (item != menuItem)
-                    item.IsChecked = false;
-            }
-
-            menuItem.IsChecked = true;
-            imgType = ImageType.png;
+            imgType = SetImageType((sender as MenuItem)!, ImageType.png);
         }
 
         private void webpItem_Click(object sender, RoutedEventArgs e)
         {
-            MenuItem menuItem = (sender as MenuItem)!;
-
-            foreach (MenuItem item in settingsMenu.Items)
-            {
-                if (item != menuItem)
-                    item.IsChecked = false;
-            }
-
-            menuItem.IsChecked = true;
-            imgType = ImageType.webp;
+            imgType = SetImageType((sender as MenuItem)!, ImageType.webp);
         }
 
         private void heifItem_Click(object sender, RoutedEventArgs e)
         {
-            MenuItem menuItem = (sender as MenuItem)!;
-
-            foreach (MenuItem item in settingsMenu.Items)
-            {
-                if (item != menuItem)
-                    item.IsChecked = false;
-            }
-
-            menuItem.IsChecked = true;
-            imgType = ImageType.heif;
+            imgType = SetImageType((sender as MenuItem)!, ImageType.heif);
         }
 
         #endregion
@@ -550,6 +454,17 @@ namespace ContinuousShotApp
             OneShot();
         }
 
-      
+        private ImageType SetImageType(MenuItem menuItem, ImageType type)
+        {
+            foreach (MenuItem item in settingsMenu.Items)
+            {
+                if (item != menuItem)
+                    item.IsChecked = false;
+            }
+
+            menuItem.IsChecked = true;
+            return type;
+        }
+
     }
 }
