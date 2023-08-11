@@ -6,10 +6,10 @@
         xmlns:local="clr-namespace:ContinuousShotApp"
         mc:Ignorable="d"
         Title="MainWindow" WindowState="Maximized" Height="1080" Width="1920" Closing="Window_Closing">
-    
+
     <Grid>
 
-        
+
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="3*"/>
@@ -17,33 +17,59 @@
 
         <Grid.RowDefinitions>
             <RowDefinition Height="20" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="131*" />
+            <RowDefinition Height="914*"/>
         </Grid.RowDefinitions>
 
 
-        <Menu Grid.Row="0" Grid.Column="0">
-            <MenuItem Header="_Settings" Checked="MenuItem_Checked">
+        <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+            <MenuItem Header="_Settings">
                 <MenuItem x:Name="settingsMenu" Header="Image Format">
                     <MenuItem x:Name="jpegItem" Header=".jpeg" IsCheckable="True" Click="jpegItem_Click" IsChecked="True"  />
                     <MenuItem Header=".png" x:Name="pngItem" Click="pngItem_Click" />
                     <MenuItem Header=".webp" x:Name="webpItem" Click="webpItem_Click" />
-                    <MenuItem Header=".heif" Name="heifItem" Click="heifItem_Click" />
+                    <MenuItem Header=".heif" x:Name="heifItem" Click="heifItem_Click" />
                 </MenuItem>
                 <Separator />
                 <MenuItem Header="_Exit" />
             </MenuItem>
+
+            <MenuItem Header="Info">
+                <MenuItem x:Name="deviceInfos" Header="Show Device Info" Click="deviceInfos_Click" />
+                <Separator />
+                <MenuItem Header="_Exit" />
+            </MenuItem>
+
+            
+
         </Menu>
 
 
-        <Border Grid.Column="1"  Grid.RowSpan="2" BorderBrush="Red" BorderThickness="5">
+        <Border Grid.Column="2" Grid.RowSpan="3" BorderBrush="#ba2530" BorderThickness="5">
             <Grid Grid.Column="1">
-                <Image x:Name="imageViewer"  VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <Image x:Name="imageViewer" VerticalAlignment="Center" HorizontalAlignment="Center" />
             </Grid>
         </Border>
 
-        <StackPanel Grid.Column="0" Grid.Row="1">
+        <StackPanel Grid.Column="0" Grid.Row="1" Grid.RowSpan="2">
 
 
+            <Grid>
+
+                <StackPanel Background="#eee" Orientation="Horizontal">
+
+                    <Image Source="/images/save_data_icon.png" Width="30" MouseDown="Image_MouseDown" Name="saveIcon" MouseUp="saveIcon_MouseUp" />
+                    
+                    <Image Source="/images/camera_icon.png" Margin="10 0 0 0" Width="30" MouseDown="Image_MouseDown" MouseUp="Image_MouseUp" />
+                    <Image Source="/images/video_icon.png" Margin="10 0 0 0" Width="30" MouseDown="Image_MouseDown" MouseUp="Image_MouseUp_1" />
+                    <Image Source="/images/stop_video_icon.png" Margin="10 0 0 0" Width="30" MouseDown="Image_MouseDown" Name="stopVideoIcon" MouseUp="stopVideoIcon_MouseUp" />
+                </StackPanel>
+
+            </Grid>
+            
+            
+            
+            
             <Grid>
 
                 <Grid.ColumnDefinitions>
@@ -95,6 +121,28 @@
 
             </Grid>
 
+            <Grid>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="3*" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Label Style="{StaticResource customLabel}" VerticalAlignment="Center" Content="Gain Auto:" HorizontalAlignment="Left" />
+                </Grid>
+
+                <Grid Grid.Column="1">
+
+                    <ComboBox IsEditable="True" IsReadOnly="True" x:Name="gainAutoSettings" Margin="10 5" Text="Off" SelectedValue="Off" SelectionChanged="gainAutoSettings_SelectionChanged">
+                        <ComboBoxItem IsSelected="True" Name="Off" Content="Off" />
+                        <ComboBoxItem Name="Once" Content="Once" />
+                        <ComboBoxItem Name="Continuous" Content="Continuous" />
+                    </ComboBox>
+                </Grid>
+            </Grid>
+            
+            
             <Grid>
 
                 <Grid.ColumnDefinitions>
@@ -191,10 +239,10 @@
                 <Grid Grid.Column="1">
                     <ComboBox x:Name="cbxDevices" SelectionChanged="cbxDevices_SelectionChanged" Margin="10 5" />
                 </Grid>
-                
+
             </Grid>
 
-            <Grid>
+            <!--<Grid>
 
                 <Grid.ColumnDefinitions>
 
@@ -221,7 +269,7 @@
                     <Button Style="{StaticResource customButton}" Width="120" x:Name="btnSingleShot" Click="btnSingleShot_Click" Content="Save Frame" />
                 </Grid>
 
-            </Grid>
+            </Grid>-->
 
 
 

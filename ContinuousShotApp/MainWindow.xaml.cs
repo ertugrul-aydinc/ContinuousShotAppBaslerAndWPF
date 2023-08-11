@@ -3,7 +3,12 @@ using ContinuousShotApp.Helpers;
 using ContinuousShotApp.Helpers.Converters;
 using ContinuousShotApp.Models.Camera;
 using ContinuousShotApp.Utilities;
+using ContinuousShotApp.Utilities.Business;
 using ContinuousShotApp.Utilities.Enums;
+using ContinuousShotApp.Utilities.ExceptionMessage;
+using ContinuousShotApp.Validations.Camera;
+using ContinuousShotApp.Validations.ImageSource;
+using ContinuousShotApp.Views;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -61,11 +66,11 @@ namespace ContinuousShotApp
                 cbxDevices.SelectedValuePath = "_Key";
 
                 cbxDevices.ItemsSource = cbp;
-                
+
             }
             catch (Exception ex)
             {
-                ShowException(ex);
+                ExceptionMessage.ShowException(ex, MethodBase.GetCurrentMethod()!.Name);
             }
         }
 
@@ -84,59 +89,13 @@ namespace ContinuousShotApp
 
         private void OnImageGrabbed(Object sender, ImageGrabbedEventArgs e)
         {
-            //if (!CheckAccess())
-            //{
-            //    Dispatcher.BeginInvoke(new EventHandler<ImageGrabbedEventArgs>(OnImageGrabbed!), sender, e.Clone());
-            //    return;
-            //}
-
-            try
+            imageViewer.Dispatcher.Invoke(() =>
             {
+                //CameraHelper.Instance.SetChangeableCameraSettings(camera!, CameraHelper.Instance.GetChangeableCameraSettings(gainSlider, exposureSlider, gammaSlider));
+                //imageViewer.Source = CameraHelper.Instance.GrabImage(e.GrabResult);
 
-                IGrabResult grabResult = e.GrabResult;
-
-                Dispatcher.Invoke(() =>
-                {
-                    SetChangeableCameraSettings(camera!, GetChangeableCameraSettings());
-                });
-
-                Bitmap? bitmap = GrabResultConverterHelper.Instance.GrabResultToBitmap(grabResult);
-
-                if (grabResult.IsValid)
-                {
-                    if (!stopwatch.IsRunning || stopwatch.ElapsedMilliseconds > 33)
-                    {
-                        stopwatch.Restart();
-
-                        BitmapImage? bitmapImage = null;
-
-                        imageViewer.Dispatcher.Invoke(() =>
-                        {
-                            bitmapImage = GrabResultConverterHelper.Instance.BitmapToImageSource(bitmap!);
-                            imageViewer.Source = bitmapImage;
-                        });
-
-                        if (bitmapImage is not null)
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                Bitmap? image = bitmap;
-                                image!.Dispose();
-                            });
-                        }
-
-                    }
-                }
-
-            }
-            catch (Exception ex)
-            {
-                ShowException(ex);
-            }
-            finally
-            {
-                e.DisposeGrabResultIfClone();
-            }
+                imageViewer.Source = CameraHelper.Instance.GrabImage(camera!, GetChangeableCameraSettings(), e.GrabResult);
+            });
         }
 
         private void OnGrabStopped(Object sender, GrabStopEventArgs e)
@@ -160,7 +119,6 @@ namespace ContinuousShotApp
                 Dispatcher.BeginInvoke(new EventHandler<EventArgs>(OnGrabStarted!), sender, e);
                 return;
             }
-
             stopwatch.Reset();
         }
 
@@ -171,6 +129,7 @@ namespace ContinuousShotApp
                 Dispatcher.BeginInvoke(new EventHandler<EventArgs>(OnCameraOpened!), sender, e);
                 return;
             }
+            CameraHelper.Instance.SetCameraStartupSettings(camera, CameraHelper.Instance.GetCameraStartupSettings(gainSlider, exposureSlider, gammaSlider, widthSlider, heightSlider));
         }
 
         private void OnCameraClosed(Object sender, EventArgs e)
@@ -191,14 +150,8 @@ namespace ContinuousShotApp
 
         private void Stop()
         {
-            try
-            {
-                camera?.StreamGrabber.Stop();
-            }
-            catch (Exception ex)
-            {
-                ShowException(ex);
-            }
+            CameraHelper.Instance.Stop(camera);
+            EnableFixedFeatureSliders();
         }
 
         private void DestroyCamera()
@@ -214,46 +167,20 @@ namespace ContinuousShotApp
             }
             catch (Exception ex)
             {
-                ShowException(ex);
+                ExceptionMessage.ShowException(ex, MethodBase.GetCurrentMethod()!.Name);
             }
         }
 
         private void OneShot()
         {
-            try
-            {
-                Configuration.AcquireSingleFrame(camera, null);
-                camera?.StreamGrabber.Start(1, GrabStrategy.OneByOne, GrabLoop.ProvidedByStreamGrabber);
-            }
-            catch (Exception ex)
-            {
-                ShowException(ex);
-            }
+            CameraHelper.Instance.OneShot(camera, GetCurrentCameraSettings());
         }
 
         private void ContinuousShot()
         {
-            try
-            {
-                if(camera is null)
-                {
-                    MessageBox.Show("Please select a device.");
-                    return;
-                }
-                if (camera.StreamGrabber.IsGrabbing)
-                {
-                    MessageBox.Show("Camera is already grabbing");
-                    return;
-                }
+            CameraHelper.Instance.ContinuousShot(camera);
 
-                SetFixedCameraSettings(camera, GetFixedCameraSettings());
-                Configuration.AcquireContinuous(camera, null);
-                camera?.StreamGrabber.Start(GrabStrategy.OneByOne, GrabLoop.ProvidedByStreamGrabber);
-            }
-            catch (Exception ex)
-            {
-                ShowException(ex);
-            }
+            DisableFixedFeatureSliders();
         }
 
         #region UIElements
@@ -285,7 +212,7 @@ namespace ContinuousShotApp
                 }
                 catch (Exception ex)
                 {
-                    ShowException(ex);
+                    ExceptionMessage.ShowException(ex, MethodBase.GetCurrentMethod()!.Name);
                 }
 
             }
@@ -305,7 +232,7 @@ namespace ContinuousShotApp
             }
             catch (Exception ex)
             {
-                ShowException(ex);
+                ExceptionMessage.ShowException(ex, MethodBase.GetCurrentMethod()!.Name);
                 return -1;
             }
         }
@@ -320,16 +247,23 @@ namespace ContinuousShotApp
         private void txtGain_TextChanged(object sender, TextChangedEventArgs e)
         {
             TextBoxToSlider(0, 36, gainSlider, txtGain.Text);
+            //txtGain.Text = txtGain.Text == string.Empty ? "" : String.Format("{0:0.000}", Convert.ToDouble(txtGain.Text));
+            txtGain.Text = FormatNumbers(txtGain.Text);
         }
 
         private void txtGamma_TextChanged(object sender, TextChangedEventArgs e)
         {
             TextBoxToSlider(0, 3.99, gammaSlider, txtGamma.Text);
+            txtGamma.Text = FormatNumbers(txtGamma.Text);
         }
+
+        private string? FormatNumbers(string text) => String.Format("{0:0.000}", Convert.ToDouble(text)) ?? string.Empty;
+
 
         private void txtExposureTime_TextChanged(object sender, TextChangedEventArgs e)
         {
             TextBoxToSlider(8, 9999992, exposureSlider, txtExposureTime.Text);
+            txtExposureTime.Text = FormatNumbers(txtExposureTime.Text);
         }
 
         private void txtWidth_TextChanged(object sender, TextChangedEventArgs e)
@@ -341,7 +275,7 @@ namespace ContinuousShotApp
 
         private void btnTakeVideo_Click(object sender, RoutedEventArgs e)
         {
-             ContinuousShot();
+            ContinuousShot();
         }
 
         private void btnStopVideo_Click(object sender, RoutedEventArgs e)
@@ -349,69 +283,16 @@ namespace ContinuousShotApp
             Stop();
         }
 
-        private void DisableStopButton()
-        {
-
-        }
         #endregion
-
-        private void ShowException(Exception ex)
-        {
-            MessageBox.Show($"Error: {ex.Message}_{MethodBase.GetCurrentMethod()!.Name}");
-        }
-
-
-        #region CameraSettings
-        private void SetChangeableCameraSettings(Camera camera, CameraSettings cameraSettings)
-        {
-            camera.Parameters[PLCamera.Gain].TrySetValue(cameraSettings.Gain);
-            camera.Parameters[PLCamera.ExposureTime].TrySetValue(cameraSettings.ExposureTime);
-            camera.Parameters[PLCamera.Gamma].TrySetValue(cameraSettings.Gamma);
-        }
-
-        private CameraSettings GetChangeableCameraSettings() => new CameraSettings()
-        {
-            Gain = gainSlider.Value,
-            ExposureTime = exposureSlider.Value,
-            Gamma = gammaSlider.Value
-        };
-
-        private void SetFixedCameraSettings(Camera camera, CameraSettings cameraSettings)
-        {
-            camera.Parameters[PLCamera.Width].SetValue(cameraSettings.Width, IntegerValueCorrection.Nearest);
-            camera.Parameters[PLCamera.Height].TrySetValue(cameraSettings.Height, IntegerValueCorrection.Nearest);
-        }
-
-        private CameraSettings GetFixedCameraSettings() => new CameraSettings()
-        {
-            Width = Convert.ToInt32(widthSlider.Value),
-            Height = Convert.ToInt32(heightSlider.Value),
-        };
-        #endregion
-
 
         private void btnSingleShot_Click(object sender, RoutedEventArgs e)
         {
-            if(camera is null)
-            {
-                MessageBox.Show("Please select a camera device");
-                return;
-            }
-
-            if (imageViewer.Source is null)
-            {
-                MessageBox.Show("Camera is not grabbing");
-                return;
-            }
-
-            BitmapImage image = (BitmapImage)imageViewer.Source;
-            var savingImage = GrabResultConverterHelper.Instance.BitmapImage2Bitmap(image);
-            FileHelper.Instance.SaveImageFile(imgType, savingImage);
+            SaveFrame();
         }
 
-        private void MenuItem_Checked(object sender, RoutedEventArgs e)
+        private void SaveFrame()
         {
-            
+            FileHelper.Instance.SaveImageFile(camera, imgType, imageViewer);
         }
 
         #region MenuItems
@@ -439,18 +320,6 @@ namespace ContinuousShotApp
 
         private void btnTakeFrame_Click(object sender, RoutedEventArgs e)
         {
-            if(camera is null)
-            {
-                MessageBox.Show("Please select a camera device");
-                return;
-            }
-
-            if (camera.StreamGrabber.IsGrabbing)
-            {
-                MessageBox.Show("Please stop video and try again");
-                return;
-            }
-
             OneShot();
         }
 
@@ -466,5 +335,128 @@ namespace ContinuousShotApp
             return type;
         }
 
+        private void SetSlidersEnableAndDisableSettings()
+        {
+
+            if (gainAutoSettings.Items.Count > 0)
+            {
+                ComboBoxItem? item = gainAutoSettings.SelectedItem as ComboBoxItem;
+
+                if (gainSlider is not null)
+                {
+                    if (item?.Name != "Off")
+                    {
+                        gainSlider.IsEnabled = false;
+                        txtGain.IsEnabled = false;
+                    }
+
+                    else
+                    {
+                        gainSlider.IsEnabled = true;
+                        txtGain.IsEnabled = true;
+                    }
+                }
+            }
+
+        }
+
+        private void DisableFixedFeatureSliders()
+        {
+            widthSlider.IsEnabled = false;
+            heightSlider.IsEnabled = false;
+        }
+
+        private void EnableFixedFeatureSliders()
+        {
+            widthSlider.IsEnabled = true;
+            heightSlider.IsEnabled = true;
+        }
+
+        private void gainAutoSettings_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            SetSlidersEnableAndDisableSettings();
+        }
+
+        private void deviceInfos_Click(object sender, RoutedEventArgs e)
+        {
+            Info info = new Info();
+
+            if (camera is null)
+            {
+                MessageBox.Show("Please select device first");
+                return;
+            }
+
+            var cameraInfo = camera.CameraInfo;
+            info.lblVendorName.Content = cameraInfo[CameraInfoKey.VendorName];
+            info.lblModelName.Content = cameraInfo[CameraInfoKey.ModelName];
+            info.lblManufacturerInfo.Content = cameraInfo[CameraInfoKey.ManufacturerInfo];
+            info.lblSerialNumber.Content = cameraInfo[CameraInfoKey.SerialNumber];
+            info.lblVersion.Content = Library.VersionInfo.ToString();
+            info.DataContext = camera;
+            info.Show();
+        }
+
+        #region Icon Buttons
+        private DateTime downTime;
+        private object downSender;
+        private void Image_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                this.downSender = sender;
+                this.downTime = DateTime.Now;
+            }
+        }
+
+        private void Image_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            ExecuteMethod(OneShot, sender, e);
+        }
+
+        private void Image_MouseUp_1(object sender, MouseButtonEventArgs e)
+        {
+            ExecuteMethod(ContinuousShot, sender, e);
+        }
+
+        private void saveIcon_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            ExecuteMethod(SaveFrame, sender, e);
+        }
+
+        private void stopVideoIcon_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            ExecuteMethod(Stop, sender, e);
+        }
+
+        delegate void MyImageButtonDelegate();
+        private void ExecuteMethod(MyImageButtonDelegate myImageButtonDelegate, object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Released &&
+            sender == this.downSender)
+            {
+                TimeSpan timeSinceDown = DateTime.Now - this.downTime;
+                if (timeSinceDown.TotalMilliseconds < 500)
+                    myImageButtonDelegate.Invoke();
+
+            }
+        }
+        #endregion
+
+        private CameraSettings GetCurrentCameraSettings() => new CameraSettings()
+        {
+            Width = Convert.ToInt32(widthSlider.Value),
+            Height = Convert.ToInt32(heightSlider.Value),
+            Gain = gainSlider.Value,
+            ExposureTime = exposureSlider.Value,
+            Gamma = gammaSlider.Value
+        };
+
+        private CameraSettings GetChangeableCameraSettings() => new CameraSettings()
+        {
+            Gain = gainSlider.Value,
+            ExposureTime = exposureSlider.Value,
+            Gamma = gammaSlider.Value
+        };
     }
 }

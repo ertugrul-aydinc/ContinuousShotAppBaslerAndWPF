@@ -1,10 +1,12 @@
 ﻿using Basler.Pylon;
+using ContinuousShotApp.Utilities.ExceptionMessage;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
@@ -52,8 +54,8 @@ namespace ContinuousShotApp.Helpers.Converters
             try
             {
                 Bitmap bitmap = new Bitmap(grabResult.Width, grabResult.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-
-                BitmapData bitmapData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, bitmap.PixelFormat);
+                
+                BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, bitmap.PixelFormat);
                 converter.OutputPixelFormat = PixelType.BGR8packed;
                 IntPtr ptrBmp = bitmapData.Scan0;
                 converter.Convert(ptrBmp, bitmapData.Stride * bitmapData.Height, grabResult);
@@ -63,10 +65,12 @@ namespace ContinuousShotApp.Helpers.Converters
             }
             catch (Exception ex)
             {
-                //ShowException(ex);
+                ExceptionMessage.ShowException(ex, MethodBase.GetCurrentMethod()!.Name);
 
                 return null;
             }
         }
+
+        //private SetParametersToSelectedPixelFormat()
     }
 }
